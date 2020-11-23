@@ -1,0 +1,184 @@
+#include <cstdio>
+#include <cctype>
+#include <cstring>
+#include <algorithm>
+#include <queue>
+#include <map>
+using namespace std;
+
+namespace thecold
+{
+	typedef long long ll;
+
+	inline int read()
+	{
+		int res = 0;
+		char c;
+		bool flag = false;
+		c = getchar();
+		while(!isdigit(c))
+		{
+			flag = (c == '-');
+			c = getchar();
+		}
+		while(isdigit(c))
+		{
+			res = res * 10 + (c ^ 48);
+			c = getchar();
+		}
+		return !flag ? res : -res;
+	}
+
+	const int Max_n = 100;
+	const int INF = 1e7;
+
+	struct node
+	{
+		int nex , to , val;
+		node(int a , int b , int c)
+		{
+			nex = a , to = b , val = c;
+		}
+		node(){}
+	}edge[Max_n * Max_n << 2];
+
+	int head[Max_n * Max_n << 2] , tot = 1 , n , m , w[Max_n][Max_n] , ans;
+	int beg , ed , base , dis[Max_n * Max_n << 2] , str[Max_n * Max_n << 2];
+
+	inline int getid(const int x , const int y)
+	{
+		if(x <= 0 || x > n || y <= 0 || y > m)	return - n * m;
+		return (x - 1) * m + y;
+	}
+
+	inline void add_edge(const int x , const int y , const int z)
+	{
+		edge[ ++ tot] = node(head[x] , y , z) , head[x] = tot;
+		// edge[ ++ tot] = node(head[y] , x , z) , head[y] = tot; bug!!!
+		edge[ ++ tot] = node(head[y] , x , 0) , head[y] = tot;
+	}
+
+	queue<int> q;
+
+	inline bool bfs()
+	{
+		while(q.size())	q.pop();
+		q.push(beg);
+		memset(dis , 0x3f , sizeof(dis));
+		dis[beg] = 1 , str[beg] = head[beg];
+		while(!q.empty())
+		{
+			int now = q.front();
+			q.pop();
+			for(int i = head[now] ; i ; i = edge[i].nex)
+			{
+				int nex = edge[i].to;
+				if(!edge[i].val || dis[nex] != 0x3f3f3f3f)	continue;
+				dis[nex] = dis[now] + 1 , str[nex] = head[nex];
+				if(nex == ed)	return true;
+				q.push(nex);
+			}
+		}
+		return false;
+	}
+
+	inline int dfs(const int now , int flow)
+	{
+		if(now == ed)	return flow;
+		int ret = 0;
+		for(int i = str[now] ; i ; i = edge[i].nex)
+		{
+			str[now] = i;
+			int nex = edge[i].to;
+			if(dis[nex] != dis[now] + 1 || edge[i].val == 0)	continue;
+			int tmp = dfs(nex , min(flow , edge[i].val));
+			if(!tmp)	dis[nex] = INF; 
+			ret += tmp , edge[i].val -= tmp , edge[i ^ 1].val += tmp , flow -= tmp;
+			if(flow == 0)	break;
+		}
+		return ret;
+	}
+
+	map<char , int> mp;
+
+	char c[Max_n];
+
+	inline void main()
+	{
+		mp['.'] = 0 , mp['A'] = -1 , mp['V'] = -2 , mp['<'] = -3 , mp['>'] = -4;
+		n = read() , m = read();
+		beg = 0 , ed = n * m * 2 + 1 , base = n * m;
+		for(int i = 1 ; i <= n ; ++ i)
+		{
+			scanf("%s" , c + 1);
+			for(int j = 1 ; j <= m ; ++ j)
+				if(isdigit(c[j]))
+					w[i][j] = c[j] - '0';
+				else w[i][j] = mp[c[j]];
+		}
+		for(int i = 1 ; i <= n ; ++ i)
+			for(int j = 1 ; j <= m ; ++ j)
+			{
+				int tmp = 0;
+				if(w[i][j] == -1)
+				{
+					if(i == 1)	continue;
+					for(int k = 1 ; k < i ; ++ k)
+						tmp = max(tmp , w[k][j]);
+					for(int k = 1 ; k < i ; ++ k)
+						add_edge(getid(k - 1 , j) + base , getid(k , j) + base , tmp - w[k][j]);
+
+					add_edge(getid(i - 1 , j) + base , ed , tmp);
+				}
+				if(w[i][j] == -2)
+				{
+					if(i == n)	continue;
+					for(int k = n ; k > i ; -- k)
+						tmp = max(tmp , w[k][j]);
+					for(int k = n ; k > i ; -- k)
+						add_edge(getid(k + 1 , j) + base , getid(k , j) + base , tmp - w[k][j]);
+					add_edge(getid(i + 1 , j) + base , ed , tmp);
+				}
+				if(w[i][j] == -3)
+				{
+					if(j == 1)	continue;
+					for(int k = j - 1 ; k >= 1 ; -- k)
+						tmp = max(tmp , w[i][k]);
+					for(int k = j - 1 ; k > 1 ; -- k)
+						add_edge(getid(i , k) , getid(i , k - 1) , tmp - w[i][k]);
+					add_edge(beg , getid(i , j - 1) , tmp);
+					add_edge(getid(i , 1) , ed , tmp - w[i][1]);
+				}
+				if(w[i][j] == -4)
+				{
+					if(j == m)	continue;
+					for(int k = j + 1 ; k <= m ; ++ k)
+						tmp = max(tmp , w[i][k]);
+					for(int k = j + 1 ; k < m ; ++ k)
+						add_edge(getid(i , k) , getid(i , k + 1) , tmp - w[i][k]);
+					add_edge(beg , getid(i , j + 1) , tmp);
+					add_edge(getid(i , m) , ed , tmp - w[i][m]);
+				}
+				ans += tmp;
+			}
+		for(int i = 1 ; i <= n ; ++ i)
+			for(int j = 1 ; j <= m ; ++ j)
+				add_edge(getid(i , j) , getid(i , j) + base , INF);
+		while(bfs())
+			ans -= dfs(beg , INF);
+		printf("%d\n" , ans);
+	}
+}
+
+int main()
+{
+	// freopen("data.in" , "r" , stdin);
+	thecold::main();
+	return 0;
+}
+/*
+3 4
+0 1 1 -2 
+0 4 3 1 
+-4 5 3 0 
+*/
