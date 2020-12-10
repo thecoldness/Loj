@@ -1,0 +1,84 @@
+#include <cstdio>
+#include <cstring>
+#include <cctype>
+#include <algorithm>
+#define double long double
+using namespace std;
+
+namespace thecold
+{
+	inline int read()
+	{
+		int res = 0;
+		char c;
+		bool flag = false;
+		c = getchar();
+		while(!isdigit(c))
+		{
+			flag = (c == '-');
+			c = getchar();
+		}
+		while(isdigit(c))
+		{
+			res = res * 10 + (c ^ 48);
+			c = getchar();
+		}
+		return !flag ? res : -res;
+	}
+	
+	const int Max_n = 1e5 + 5;
+	const double eps = 1e-7;
+	
+	struct node
+	{
+		int ai , bi;
+		node(int a , int b)
+		{
+			ai = a , bi = b;
+		}
+		node(){}
+	}dot[Max_n];
+	
+	int n , k;
+	
+	double ans , tmp;
+	
+	inline bool cmp(node a , node b)
+	{
+		return (double) a.ai - a.bi * tmp - b.ai + b.bi * tmp >= -eps;
+	}
+
+	inline bool check(const double x)
+	{
+		tmp = x;
+		sort(dot + 1 , dot + n + 1 , cmp);
+		double ret = 0;
+		for(int i = 1 ; i <= k ; ++ i)
+			ret += (double)dot[i].ai - dot[i].bi * x;
+		return ret >= -eps;
+	}
+	
+	inline void main()
+	{
+		n = read() , k = read();
+		for(int i = 1 ; i <= n ; ++ i)
+			dot[i].ai = read();
+		for(int i = 1 ; i <= n ; ++ i)
+			dot[i].bi = read();
+		double l = 0 , r = 1e11;
+		while((r - l) >= -eps)
+		{
+			double mid = (r + l) / 2.0;
+			if(check(mid))
+				ans = mid , l = mid + eps;
+			else r = mid - eps;
+		}
+		printf("%.4Lf" , ans);
+	}
+}
+
+int main()
+{
+	thecold::main();
+	return 0;
+}
