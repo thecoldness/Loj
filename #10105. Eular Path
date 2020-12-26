@@ -1,0 +1,160 @@
+#include <cstdio>
+#include <algorithm>
+#include <cstring>
+#include <cctype>
+using namespace std;
+
+namespace thecold
+{
+	inline int read()
+	{
+		int res = 0;
+		char c; bool flag = false;
+		c = getchar();
+		while(!isdigit(c))
+		{
+			flag = (c == '-');
+			c = getchar();
+		}
+		while(isdigit(c))
+		{
+			res = res * 10 + (c ^ 48);
+			c = getchar();
+		}
+		return !flag ? res : -res;
+	}
+	
+	const int Max_n = 1e5 + 5;
+	
+	struct node
+	{
+		int nex , to , val , id;
+		node(int a , int b , int c , int d)
+		{
+			nex = a , to = b , val = c , id = d;
+		}
+		node(){}
+	}edge[Max_n << 2];
+	
+	int n , m , head[Max_n] , tot = 1 , t , in[Max_n] , out[Max_n];
+	int fa[Max_n];
+	
+	inline void add_edge(const int x , const int y , const int z , const int d)
+	{
+		edge[ ++ tot] = node(head[x] , y , z , d) , head[x] = tot;
+	}
+	
+	int find(const int x)
+	{
+		return x ^ fa[x] ? fa[x] = find(fa[x]) : x;
+	}
+	
+	inline void merge(const int x , const int y)
+	{
+		fa[find(x)] = find(y);
+	}
+	
+	inline void NO()
+	{
+		puts("NO"); exit(0);
+	}
+	
+	bool vis[Max_n << 2] , oped[Max_n];
+	
+	int beg[Max_n] , tp_ans , ans[Max_n << 1];
+	int sz[Max_n] , cnt , str , lst;
+	
+	inline void dfs_ans_1(const int now)
+	{
+		for(int& i = beg[now] ; i ; i = edge[i].nex)
+		{
+			if(vis[i]) continue;
+			int now = i;
+			int nex = edge[i].to , id = edge[i].id;
+//			vis[id] = vis[id ^ 1] = true; bug
+			vis[i] = vis[i ^ 1] = true;
+			dfs_ans_1(nex);
+			ans[ ++ tp_ans] = id * edge[now].val;
+		}
+	}
+	
+	inline void subtask_1()
+	{
+		n = read() , m = read();
+		for(int i = 1 ; i <= n ; ++ i)
+			fa[i] = i;
+		for(int i = 1 ; i <= m ; ++ i)
+		{
+			int ui = read() , vi = read();
+			str = ui , oped[ui] = oped[vi] = true;
+			add_edge(ui , vi , 1 , i) , add_edge(vi , ui , -1 , i);
+			++ in[ui] , ++ in[vi] , merge(ui , vi);
+		}
+		for(int i = 1 ; i <= n ; ++ i)
+			if(in[i] % 2)	NO();
+		for(int i = 1 ; i <= n ; ++ i)
+			if(oped[i]) 
+			{
+				if(lst && find(i) != lst) NO();
+				lst = find(i);
+			}
+		for(int i = 1 ; i <= n ; ++ i)
+			beg[i] = head[i];
+		dfs_ans_1(str); puts("YES");
+		for(int i = m ; i ; -- i)
+			printf("%d " , ans[i]);
+	}
+	
+	inline void dfs_ans_2(const int now)
+	{
+		for(int& i = beg[now] ; i ; i = edge[i].nex)
+		{
+			if(vis[i])	continue;
+//			beg[i] = i; int nex = edge[i].to , id = edge[i].id; bug
+			int nex = edge[i].to , id = edge[i].id;
+			vis[i] = true;
+			dfs_ans_2(nex);
+			ans[ ++ tp_ans] = id;
+		}
+	}
+	
+	inline void subtask_2()
+	{
+		n = read() , m = read();
+		for(int i = 1 ; i <= n ; ++ i)
+			fa[i] = i;
+		for(int i = 1 ; i <= m ; ++ i)
+		{
+			int ui = read() , vi = read();
+			str = ui , oped[ui] = oped[vi] = true;
+			add_edge(ui , vi , 1 , i);
+			++ in[vi] , ++ out[ui] , merge(ui , vi);
+		}
+		for(int i = 1 ; i <= n ; ++ i)
+			if(in[i] != out[i])	NO();
+		for(int i = 1 ; i <= n ; ++ i)
+			beg[i] = head[i];
+		for(int i = 1 ; i <= n ; ++ i)
+			if(oped[i])
+			{
+				if(lst && find(i) != lst)	NO();
+				lst = find(i);
+			}
+		dfs_ans_2(str); puts("YES");
+		for(int i = m ; i ; -- i)
+			printf("%d " , ans[i]);
+	}
+		
+	inline void main()
+	{
+		t = read() , fa[0] = 1;
+		if(t == 1)	subtask_1();
+		else subtask_2();		
+	}
+}
+
+int main()
+{
+	thecold::main();
+	return 0;
+}
