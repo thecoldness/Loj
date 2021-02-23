@@ -1,0 +1,152 @@
+#include <cstdio>
+#include <cstring>
+#include <cctype>
+#include <algorithm>
+using namespace std;
+
+namespace thecold
+{
+	inline int read()
+	{
+		int res = 0; bool flag = false;
+		char c = getchar();
+		while(!isdigit(c))
+			flag = (c == '-') , c = getchar();
+		while(isdigit(c))
+			res = res * 10 + (c ^ 48) , c = getchar();
+		return !flag ? res : -res;
+	}
+
+	const int Max_n = 2e5 + 5;
+	const int Max_m = 4e7 + 5;
+
+	int n , rnk[Max_n] , sa[Max_n] , tmp[Max_n] , m , a[Max_n] , logm[Max_n];
+	int height[Max_n] , w[Max_n] , buk[Max_n] , dif , root[Max_n] , tot;
+
+	char c[Max_n];
+
+	int sum[Max_m] , son[Max_m][2];
+
+	void insert(int &now , const int lst , const int dep , const int val)
+	{
+		now = ++ tot; sum[now] = sum[lst] + 1; if(dep == 0) return;
+		son[now][0] = son[lst][0] , son[now][1] = son[lst][1];
+		if(val & (1 << (dep - 1))) insert(son[now][1] , son[lst][1] , dep - 1 , val);
+		else insert(son[now][0] , son[lst][0] , dep - 1 , val);
+	}
+
+	struct node
+	{
+		int pos , val;
+		node(int a , int b)
+		{
+			pos = a , val = b;
+		}
+		node(){}
+		bool operator < (const node &a) const
+		{
+			// return pos < a.pos;bug
+			return val < a.val;
+		}
+	}f[20][Max_n];
+
+	inline void build()
+	{
+		for(int i = 1 ; i <= n ; ++ i) f[0][i] = node(i , height[i]);
+		for(int i = 1 ; i <= logm[n] ; ++ i)
+			for(int j = 1 ; j + (1 << i) - 1 <= n ; ++ j)
+				f[i][j] = min(f[i - 1][j] , f[i - 1][j + (1 << (i - 1))]);
+	}
+
+	int ans;
+
+	inline int find(const int l , const int r)
+	{
+		int len = r - l + 1;
+		return min(f[logm[len]][l] , f[logm[len]][r - (1 << logm[len]) + 1]).pos;
+	}
+
+	int calc(const int r , const int l , const int dep , const int val , const int ret)
+	{
+		if(dep == 0) return ret;
+		int sum0 = sum[son[r][0]] - sum[son[l][0]] , sum1 = sum[son[r][1]] - sum[son[l][1]];
+		if(val & (1 << (dep - 1)))
+		{
+			if(sum0) return calc(son[r][0] , son[l][0] , dep - 1 , val , ret | (1 << (dep - 1)));
+			else return calc(son[r][1] , son[l][1] , dep - 1 , val , ret);
+		}
+		else
+		{
+			if(sum1) return calc(son[r][1] , son[l][1] , dep - 1 , val , ret | (1 << (dep - 1)));
+			else return calc(son[r][0] , son[l][0] , dep - 1 , val , ret);
+		}
+	}
+
+	inline void solve(const int l , const int r)
+	{
+		if(l >= r) return;
+		int pos = find(l + 1 , r) , ret = 0; int len1 = pos - l , len2 = r - pos + 1;
+		if(len1 <= len2)
+		{
+			for(int i = l ; i < pos ; ++ i) 
+				ret = max(ret , calc(root[r] , root[pos - 1] , 20 , a[i] , 0));
+		}
+		else
+		{
+			for(int i = pos ; i <= r ; ++ i)
+				ret = max(ret , calc(root[pos - 1] , root[l - 1] , 20 , a[i] , 0));
+		}
+		ans = max(ans , ret + height[pos]);
+		solve(l , pos - 1) , solve(pos , r);
+	}
+
+	inline void main()
+	{
+		n = read();
+		scanf("%s" , c + 1); m = 122;
+		for(int i = 1 ; i <= n ; ++ i) w[i] = read();
+		for(int i = 2 ; i <= n ; ++ i) logm[i] = logm[i / 2] + 1;
+		int *rk = rnk , *tp = tmp;
+		for(int i = 1 ; i <= n ; ++ i) rk[i] = c[i];
+		for(int i = 1 ; i <= n ; ++ i) ++ buk[rk[i]];
+		for(int i = 2 ; i <= m ; ++ i) buk[i] += buk[i - 1];
+		for(int i = n ; i >= 1 ; -- i) sa[buk[rk[i]] --] = i;
+		for(int len = 1 ; dif < n && len <= n ; len <<= 1)
+		{
+			int top = 0;
+			for(int i = n - len + 1 ; i <= n ; ++ i) tp[ ++ top] = i;
+			for(int i = 1 ; i <= n ; ++ i)
+				if(sa[i] > len) tp[ ++ top] = sa[i] - len;
+			memset(buk , 0 , sizeof(buk));
+			for(int i = 1 ; i <= n ; ++ i) ++ buk[rk[i]];
+			for(int i = 1 ; i <= m ; ++ i) buk[i] += buk[i - 1];
+			for(int i = n ; i ; -- i)	sa[buk[rk[tp[i]]] --] = tp[i];
+			swap(rk , tp); rk[sa[1]] = dif = 1;
+			for(int i = 2 ; i <= n ; ++ i)
+				rk[sa[i]] = (tp[sa[i]] == tp[sa[i - 1]] && tp[sa[i] + len] == tp[sa[i - 1] + len]) ? dif : ++ dif;
+			m = dif;
+		}
+		int k = 0;
+		for(int i = 1 ; i <= n ; ++ i) rk[sa[i]] = i;
+		for(int i = 1 ; i <= n ; ++ i)
+		{
+			if(rk[i] == 1) {k = 0; continue;}
+			while(c[i + k] == c[sa[rk[i] - 1] + k]) ++ k;
+			height[rk[i]] = k; if(k > 0) -- k;
+		}
+		for(int i = 1 ; i <= n ; ++ i) 
+			insert(root[i] , root[i - 1] , 20 , a[i] = w[sa[i]]);
+		build(); solve(1 , n); printf("%d\n" , ans);
+	}
+}
+
+int main()
+{
+	thecold::main();
+	return 0;
+}
+/*
+5
+ababa
+1 1 1 1 1
+*/
